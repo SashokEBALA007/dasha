@@ -25,7 +25,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 16px;
+            padding: 8px; /* уменьшили отступы */
             position: relative;
         }
 
@@ -55,15 +55,15 @@
 
         .container {
             width: 100%;
-            max-width: 550px;
+            max-width: 500px;   /* чуть уже */
             background: rgba(255, 255, 255, 0.95);
-            border-radius: 48px;
+            border-radius: 40px;
             box-shadow: 0 20px 35px rgba(0,0,0,0.2);
             backdrop-filter: blur(2px);
             text-align: center;
             position: relative;
             z-index: 20;
-            padding: 20px;
+            padding: 12px;      /* уменьшили внутренние отступы */
         }
 
         .screen {
@@ -75,43 +75,43 @@
         }
 
         .reasons-list {
-            margin: 20px 0;
+            margin: 12px 0;
         }
         .reason-card {
             background: white;
             border-radius: 100px;
-            padding: 10px 16px;
-            margin: 10px 0;
+            padding: 8px 16px;
+            margin: 8px 0;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
         .emoji {
-            font-size: 28px;
+            font-size: 24px;
             background: #ffe5e8;
             border-radius: 50%;
-            width: 44px;
-            height: 44px;
+            width: 38px;
+            height: 38px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
         }
         .reason-text {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             color: #333;
         }
         .btn {
             background: #ff4d6d;
             border: none;
-            padding: 14px 24px;
-            font-size: 18px;
+            padding: 12px 20px;
+            font-size: 16px;
             font-weight: bold;
             color: white;
             border-radius: 40px;
             cursor: pointer;
-            margin-top: 20px;
+            margin-top: 12px;
             width: 100%;
             transition: 0.2s;
         }
@@ -122,9 +122,9 @@
         .game-area {
             position: relative;
             width: 100%;
-            aspect-ratio: 2 / 3;
+            aspect-ratio: 4 / 5;   /* более низкое поле, чтобы влезало */
             background: #9fd3a3;
-            border-radius: 32px;
+            border-radius: 28px;
             overflow: hidden;
             box-shadow: inset 0 0 0 3px white, 0 10px 20px rgba(0,0,0,0.1);
             touch-action: none;
@@ -143,26 +143,26 @@
         .game-stats {
             display: flex;
             justify-content: space-between;
-            padding: 12px 16px;
+            padding: 8px 12px;
             background: rgba(255,255,240,0.9);
-            border-radius: 60px;
-            margin-top: 12px;
+            border-radius: 40px;
+            margin-top: 8px;
             font-weight: bold;
-            font-size: 18px;
+            font-size: 16px;
         }
 
         .control-buttons {
             display: flex;
-            gap: 20px;
+            gap: 12px;
             justify-content: center;
-            margin-top: 12px;
+            margin-top: 8px;
         }
         .control-btn {
             background: #ffb3c6;
             border: none;
-            font-size: 28px;
-            padding: 10px 24px;
-            border-radius: 60px;
+            font-size: 24px;
+            padding: 8px 16px;
+            border-radius: 40px;
             font-weight: bold;
             cursor: pointer;
             width: 45%;
@@ -172,12 +172,15 @@
             transform: scale(0.96);
         }
         .control-hint {
-            margin-top: 12px;
-            font-size: 14px;
+            margin-top: 8px;
+            font-size: 12px;
             color: #ff4d6d;
             background: #fff0f3;
             border-radius: 40px;
-            padding: 8px;
+            padding: 6px;
+        }
+        #gameOverMsg {
+            font-size: 14px;
         }
     </style>
 </head>
@@ -187,8 +190,8 @@
 
 <div class="container">
     <div id="screenReasons" class="screen active-screen">
-        <div style="font-size: 32px; animation: pulse 1.5s infinite;">💖💗💖</div>
-        <h1 style="color:#ff4d6d; font-size: 34px;">Почему Даша<br>самая лучшая?</h1>
+        <div style="font-size: 28px; animation: pulse 1.5s infinite;">💖💗💖</div>
+        <h1 style="color:#ff4d6d; font-size: 30px;">Почему Даша<br>самая лучшая?</h1>
         <div class="reasons-list">
             <div class="reason-card"><span class="emoji">🌟</span><span class="reason-text">Её зовут Даша</span></div>
             <div class="reason-card"><span class="emoji">👭</span><span class="reason-text">Она моя сестра</span></div>
@@ -201,7 +204,7 @@
 
     <div id="screenGame" class="screen">
         <div class="game-area" id="gameArea">
-            <canvas id="gameCanvas"></canvas> <!-- убираем фиксированные width/height -->
+            <canvas id="gameCanvas"></canvas>
         </div>
         <div class="game-stats">
             <span>🌸 <span id="flowersCount">0</span></span>
@@ -211,13 +214,13 @@
             <button class="control-btn" id="leftBtn">⬅️ Влево</button>
             <button class="control-btn" id="rightBtn">Вправо ➡️</button>
         </div>
-        <button class="btn" id="backToReasonsBtn" style="background:#ffb3c6; color:#333; margin-top: 12px;">🏠 На главную</button>
-        <div id="gameOverMsg" style="text-align:center; margin-top: 8px; font-weight:bold;"></div>
+        <button class="btn" id="backToReasonsBtn" style="background:#ffb3c6; color:#333; margin-top: 8px;">🏠 На главную</button>
+        <div id="gameOverMsg" style="text-align:center; margin-top: 6px; font-weight:bold;"></div>
     </div>
 </div>
 
 <script>
-    // декоративные падалки
+    // падалки
     function createFallingItem() {
         const container = document.getElementById('fallingContainer');
         if (!container) return;
@@ -264,7 +267,7 @@
         canvasWidth = canvas.width;
         canvasHeight = canvas.height;
         laneWidth = canvasWidth / lanes;
-        playerY = canvasHeight - laneWidth * 0.6; // чуть выше нижнего края
+        playerY = canvasHeight - laneWidth * 0.55;
         objectSize = laneWidth * 0.7;
     }
 
@@ -272,7 +275,6 @@
         if (!ctx || canvasWidth === 0) return;
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
         
-        // дорожки
         for (let i = 0; i < lanes; i++) {
             let x = i * laneWidth;
             ctx.fillStyle = (i === playerLane) ? '#c8e6b5' : '#e1f5d0';
@@ -282,26 +284,20 @@
             ctx.strokeRect(x, 0, laneWidth, canvasHeight);
         }
         
-        // объекты
         for (let obj of objects) {
             let x = obj.lane * laneWidth + laneWidth/2;
             let y = obj.y;
             ctx.font = `${objectSize}px "Segoe UI Emoji"`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            if (obj.type === 'flower') {
-                ctx.fillText('🌸', x, y);
-            } else {
-                ctx.fillText('🗿', x, y);
-            }
+            ctx.fillText(obj.type === 'flower' ? '🌸' : '🪨', x, y);
         }
         
-        // Даша
         let playerX = playerLane * laneWidth + laneWidth/2;
         ctx.font = `${laneWidth * 0.8}px "Segoe UI Emoji"`;
         ctx.fillStyle = '#ff99cc';
         ctx.fillText('👧', playerX, playerY);
-        ctx.font = `bold ${Math.max(12, laneWidth * 0.2)}px 'Quicksand'`;
+        ctx.font = `bold ${Math.max(11, laneWidth * 0.18)}px 'Quicksand'`;
         ctx.fillStyle = '#a64d2e';
         ctx.fillText('Даша', playerX, playerY + laneWidth * 0.25);
         ctx.textAlign = "left";
@@ -314,15 +310,12 @@
         let speed = baseSpeed + Math.floor(distance / 250);
         if (speed > 10) speed = 10;
         
-        // движение объектов
         for (let i = objects.length-1; i >= 0; i--) {
             objects[i].y += speed;
             if (objects[i].y > canvasHeight + objectSize) objects.splice(i,1);
         }
         
-        // столкновения
         for (let obj of objects) {
-            // зона игрока: от playerY - objectSize/2 до playerY + objectSize/2
             let playerTop = playerY - objectSize/1.8;
             let playerBottom = playerY + objectSize/1.8;
             if (obj.lane === playerLane && obj.y + objectSize/2 > playerTop && obj.y - objectSize/2 < playerBottom) {
@@ -339,7 +332,6 @@
             }
         }
         
-        // генерация
         spawnCounter++;
         let dynamicDelay = Math.max(30, spawnDelay - Math.floor(distance / 350));
         if (spawnCounter >= dynamicDelay) {
@@ -381,7 +373,6 @@
         if (restartBtn) restartBtn.onclick = () => { startGame(); };
     }
     
-    // Управление
     function moveLeft() {
         if (!gameRunning) return;
         if (playerLane > 0) playerLane--;
@@ -419,11 +410,9 @@
         draw();
     }
     
-    // Кнопки
     document.getElementById('leftBtn').addEventListener('click', moveLeft);
     document.getElementById('rightBtn').addEventListener('click', moveRight);
     
-    // Переключение экранов
     const screenReasons = document.getElementById('screenReasons');
     const screenGame = document.getElementById('screenGame');
     const startBtn = document.getElementById('startGameBtn');
