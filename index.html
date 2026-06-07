@@ -17,7 +17,6 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            touch-action: pan-x pan-y; /* разрешаем жесты, но они будут перехватываться */
         }
 
         body {
@@ -30,7 +29,6 @@
             position: relative;
         }
 
-        /* падающие розочки (декор) */
         .falling-container {
             position: fixed;
             top: 0;
@@ -55,7 +53,6 @@
             100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
         }
 
-        /* главный контейнер */
         .container {
             width: 100%;
             max-width: 550px;
@@ -77,7 +74,6 @@
             display: block;
         }
 
-        /* экран причин */
         .reasons-list {
             margin: 20px 0;
         }
@@ -123,16 +119,15 @@
             transform: scale(0.96);
         }
 
-        /* игровое поле */
         .game-area {
             position: relative;
             width: 100%;
-            aspect-ratio: 3 / 5;
-            background: #b0e57c;
+            aspect-ratio: 2 / 3;
+            background: #9fd3a3;
             border-radius: 32px;
             overflow: hidden;
             box-shadow: inset 0 0 0 3px white, 0 10px 20px rgba(0,0,0,0.1);
-            touch-action: pan-x; /* чтобы скролл страницы не мешал */
+            touch-action: none;
         }
 
         canvas {
@@ -142,6 +137,7 @@
             width: 100%;
             height: 100%;
             display: block;
+            touch-action: none;
         }
 
         .game-stats {
@@ -155,6 +151,26 @@
             font-size: 18px;
         }
 
+        .control-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 12px;
+        }
+        .control-btn {
+            background: #ffb3c6;
+            border: none;
+            font-size: 28px;
+            padding: 10px 24px;
+            border-radius: 60px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 45%;
+        }
+        .control-btn:active {
+            background: #ff8fa3;
+            transform: scale(0.96);
+        }
         .control-hint {
             margin-top: 12px;
             font-size: 14px;
@@ -170,9 +186,8 @@
 <div class="falling-container" id="fallingContainer"></div>
 
 <div class="container">
-    <!-- ЭКРАН 1: Причины -->
     <div id="screenReasons" class="screen active-screen">
-        <div class="heart-decoration" style="font-size: 32px; animation: pulse 1.5s infinite;">💖💗💖</div>
+        <div style="font-size: 32px; animation: pulse 1.5s infinite;">💖💗💖</div>
         <h1 style="color:#ff4d6d; font-size: 34px;">Почему Даша<br>самая лучшая?</h1>
         <div class="reasons-list">
             <div class="reason-card"><span class="emoji">🌟</span><span class="reason-text">Её зовут Даша</span></div>
@@ -181,17 +196,20 @@
             <div class="reason-card"><span class="emoji">🎀</span><span class="reason-text">Даша, я очень старалась для тебя</span></div>
         </div>
         <button class="btn" id="startGameBtn">🏃‍♀️ ПОБЕЖАЛИ! 🏃‍♀️</button>
-        <div class="control-hint">Веди пальцем влево-вправо, чтобы менять дорожку. Собирай цветы 🌸, уворачивайся от камней 🪨</div>
+        <div class="control-hint">👉 Нажимай на экран слева/справа или используй кнопки</div>
     </div>
 
-    <!-- ЭКРАН 2: ИГРА -->
     <div id="screenGame" class="screen">
         <div class="game-area" id="gameArea">
-            <canvas id="gameCanvas" width="600" height="1000"></canvas>
+            <canvas id="gameCanvas"></canvas> <!-- убираем фиксированные width/height -->
         </div>
         <div class="game-stats">
             <span>🌸 <span id="flowersCount">0</span></span>
             <span>🏃‍♀️ Дистанция: <span id="distance">0</span> м</span>
+        </div>
+        <div class="control-buttons">
+            <button class="control-btn" id="leftBtn">⬅️ Влево</button>
+            <button class="control-btn" id="rightBtn">Вправо ➡️</button>
         </div>
         <button class="btn" id="backToReasonsBtn" style="background:#ffb3c6; color:#333; margin-top: 12px;">🏠 На главную</button>
         <div id="gameOverMsg" style="text-align:center; margin-top: 8px; font-weight:bold;"></div>
@@ -199,7 +217,7 @@
 </div>
 
 <script>
-    // ---------- ПАДАЮЩИЙ ДЕКОР ----------
+    // декоративные падалки
     function createFallingItem() {
         const container = document.getElementById('fallingContainer');
         if (!container) return;
@@ -219,269 +237,210 @@
     }
     setInterval(createFallingItem, 600);
 
-    // ---------- ИГРА БЕГАЛКА ----------
+    // ---------- ИГРА ----------
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    
-    // Размеры дорожек
-    let laneWidth = 0;
-    let laneCount = 3;
-    let playerLane = 1; // 0,1,2
     let gameRunning = false;
-    let animationId = null;
-    
-    // Объекты: цветы и препятствия
-    let objects = []; // { x, y, type: 'flower' или 'rock', lane }
-    let scoreFlowers = 0;
-    let distance = 0; // метры (увеличивается со временем)
-    let baseSpeed = 2; // пикселей за кадр
-    let lastTimestamp = 0;
-    let frame = 0;
-    
-    // Настройки генерации
+
+    let lanes = 3;
+    let playerLane = 1;
+    let objects = [];
+    let flowers = 0;
+    let distance = 0;
+    let baseSpeed = 2.5;
     let spawnCounter = 0;
-    let spawnDelay = 45; // кадров между появлением объектов (чем меньше, тем чаще)
+    let spawnDelay = 45;
     
-    // Размеры игрового поля
-    let gameWidth = 600;
-    let gameHeight = 1000;
-    let playerSize = 50;
-    let objectSize = 45;
-    
-    function resizeCanvas() {
+    let canvasWidth = 0, canvasHeight = 0;
+    let laneWidth = 0;
+    let playerY = 0;
+    let objectSize = 0;
+
+    function updateDimensions() {
         const container = document.getElementById('gameArea');
         const rect = container.getBoundingClientRect();
         canvas.width = rect.width;
         canvas.height = rect.height;
-        gameWidth = canvas.width;
-        gameHeight = canvas.height;
-        laneWidth = gameWidth / laneCount;
-        playerSize = laneWidth * 0.8;
+        canvasWidth = canvas.width;
+        canvasHeight = canvas.height;
+        laneWidth = canvasWidth / lanes;
+        playerY = canvasHeight - laneWidth * 0.6; // чуть выше нижнего края
         objectSize = laneWidth * 0.7;
-        draw();
     }
-    window.addEventListener('resize', () => { if (gameRunning) resizeCanvas(); else resizeCanvas(); });
-    
-    // Рисование
+
     function draw() {
-        if (!ctx) return;
-        ctx.clearRect(0, 0, gameWidth, gameHeight);
+        if (!ctx || canvasWidth === 0) return;
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
         
         // дорожки
-        for (let i = 0; i < laneCount; i++) {
+        for (let i = 0; i < lanes; i++) {
             let x = i * laneWidth;
-            ctx.fillStyle = i === playerLane ? '#c8e6b5' : '#e1f5d0';
-            ctx.fillRect(x, 0, laneWidth, gameHeight);
-            ctx.strokeStyle = '#fff8e7';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(x, 0, laneWidth, gameHeight);
+            ctx.fillStyle = (i === playerLane) ? '#c8e6b5' : '#e1f5d0';
+            ctx.fillRect(x, 0, laneWidth, canvasHeight);
+            ctx.strokeStyle = '#f5f0d1';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, 0, laneWidth, canvasHeight);
         }
         
         // объекты
         for (let obj of objects) {
             let x = obj.lane * laneWidth + laneWidth/2;
             let y = obj.y;
+            ctx.font = `${objectSize}px "Segoe UI Emoji"`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
             if (obj.type === 'flower') {
-                ctx.font = `${objectSize}px "Segoe UI Emoji"`;
-                ctx.fillStyle = 'hotpink';
-                ctx.shadowBlur = 0;
-                ctx.fillText('🌸', x - objectSize/2, y);
+                ctx.fillText('🌸', x, y);
             } else {
-                ctx.font = `${objectSize}px "Segoe UI Emoji"`;
-                ctx.fillStyle = '#555';
-                ctx.fillText('🪨', x - objectSize/2, y);
+                ctx.fillText('🗿', x, y);
             }
         }
         
-        // игрок (Даша)
+        // Даша
         let playerX = playerLane * laneWidth + laneWidth/2;
-        let playerY = gameHeight - 70;
-        ctx.font = `${playerSize}px "Segoe UI Emoji"`;
+        ctx.font = `${laneWidth * 0.8}px "Segoe UI Emoji"`;
         ctx.fillStyle = '#ff99cc';
-        ctx.fillText('👧', playerX - playerSize/2, playerY);
-        
-        // надпись "Даша" под ногами?
-        ctx.font = "bold 16px 'Quicksand'";
+        ctx.fillText('👧', playerX, playerY);
+        ctx.font = `bold ${Math.max(12, laneWidth * 0.2)}px 'Quicksand'`;
         ctx.fillStyle = '#a64d2e';
-        ctx.shadowBlur = 0;
-        ctx.fillText("Даша", playerX - 20, playerY + 10);
+        ctx.fillText('Даша', playerX, playerY + laneWidth * 0.25);
+        ctx.textAlign = "left";
     }
     
-    // Обновление объектов
     function updateGame() {
         if (!gameRunning) return;
-        
-        // увеличиваем дистанцию и скорость
-        distance += 0.1;
+        distance += 0.12;
         document.getElementById('distance').innerText = Math.floor(distance);
-        let speed = baseSpeed + Math.floor(distance / 300);
-        if (speed > 12) speed = 12;
+        let speed = baseSpeed + Math.floor(distance / 250);
+        if (speed > 10) speed = 10;
         
-        // двигаем объекты вверх
+        // движение объектов
         for (let i = objects.length-1; i >= 0; i--) {
             objects[i].y += speed;
-            if (objects[i].y > gameHeight + 100) {
-                objects.splice(i,1);
-            }
+            if (objects[i].y > canvasHeight + objectSize) objects.splice(i,1);
         }
         
-        // проверка столкновений
+        // столкновения
         for (let obj of objects) {
-            if (obj.lane === playerLane && obj.y + objectSize/2 > gameHeight-80 && obj.y - objectSize/2 < gameHeight-20) {
-                // столкновение
+            // зона игрока: от playerY - objectSize/2 до playerY + objectSize/2
+            let playerTop = playerY - objectSize/1.8;
+            let playerBottom = playerY + objectSize/1.8;
+            if (obj.lane === playerLane && obj.y + objectSize/2 > playerTop && obj.y - objectSize/2 < playerBottom) {
                 if (obj.type === 'rock') {
                     gameOver();
                     return;
                 } else if (obj.type === 'flower') {
-                    // собираем цветок
-                    scoreFlowers++;
-                    document.getElementById('flowersCount').innerText = scoreFlowers;
-                    // удаляем этот цветок
+                    flowers++;
+                    document.getElementById('flowersCount').innerText = flowers;
                     const idx = objects.indexOf(obj);
                     if (idx !== -1) objects.splice(idx,1);
-                    // приятный эффект (вибрация если можно)
                     if (navigator.vibrate) navigator.vibrate(50);
                 }
             }
         }
         
-        // генерация новых объектов
+        // генерация
         spawnCounter++;
-        let dynamicDelay = Math.max(25, spawnDelay - Math.floor(distance / 400));
+        let dynamicDelay = Math.max(30, spawnDelay - Math.floor(distance / 350));
         if (spawnCounter >= dynamicDelay) {
             spawnCounter = 0;
-            let lane = Math.floor(Math.random() * laneCount);
-            let type = Math.random() < 0.6 ? 'flower' : 'rock'; // 60% цветы
-            // чем дальше, тем больше камней
-            if (distance > 200) type = Math.random() < 0.4 ? 'flower' : 'rock';
-            if (distance > 500) type = Math.random() < 0.3 ? 'flower' : 'rock';
-            objects.push({
-                lane: lane,
-                y: -30,
-                type: type
-            });
+            let lane = Math.floor(Math.random() * lanes);
+            let type = (Math.random() < 0.65 || distance < 150) ? 'flower' : 'rock';
+            if (distance > 350) type = Math.random() < 0.45 ? 'flower' : 'rock';
+            objects.push({ lane: lane, y: -30, type: type });
         }
-        
         draw();
     }
     
-    let gameLoop = null;
-    function startGameLoop() {
-        if (gameLoop) cancelAnimationFrame(gameLoop);
-        function step() {
-            if (!gameRunning) return;
-            updateGame();
-            gameLoop = requestAnimationFrame(step);
-        }
-        gameLoop = requestAnimationFrame(step);
+    function gameLoop() {
+        if (!gameRunning) return;
+        updateGame();
+        requestAnimationFrame(gameLoop);
+    }
+    
+    function startGame() {
+        if (gameRunning) return;
+        gameRunning = true;
+        objects = [];
+        flowers = 0;
+        distance = 0;
+        playerLane = 1;
+        spawnCounter = 0;
+        document.getElementById('flowersCount').innerText = '0';
+        document.getElementById('distance').innerText = '0';
+        document.getElementById('gameOverMsg').innerHTML = '';
+        updateDimensions();
+        draw();
+        gameLoop();
     }
     
     function gameOver() {
         gameRunning = false;
-        if (gameLoop) cancelAnimationFrame(gameLoop);
-        gameLoop = null;
-        document.getElementById('gameOverMsg').innerHTML = `💔 Игра окончена! Ты собрала ${scoreFlowers} цветов и пробежала ${Math.floor(distance)} м. 💔<br><button id="restartGameBtn" class="btn" style="background:#ff8fa3; margin-top:6px;">🔁 Сыграть ещё</button>`;
-        const restartBtn = document.getElementById('restartGameBtn');
-        if (restartBtn) restartBtn.onclick = () => resetAndStart();
+        document.getElementById('gameOverMsg').innerHTML = `💔 Игра окончена! Цветов: ${flowers}, Дистанция: ${Math.floor(distance)} м. 💔<br><button id="restartBtn" class="btn" style="background:#ff8fa3; margin-top:6px;">🔁 Сыграть ещё</button>`;
+        const restartBtn = document.getElementById('restartBtn');
+        if (restartBtn) restartBtn.onclick = () => { startGame(); };
     }
     
-    function resetAndStart() {
-        // сброс
-        objects = [];
-        scoreFlowers = 0;
-        distance = 0;
-        playerLane = 1;
-        spawnCounter = 0;
-        baseSpeed = 2;
-        document.getElementById('flowersCount').innerText = '0';
-        document.getElementById('distance').innerText = '0';
-        document.getElementById('gameOverMsg').innerHTML = '';
-        gameRunning = true;
-        startGameLoop();
+    // Управление
+    function moveLeft() {
+        if (!gameRunning) return;
+        if (playerLane > 0) playerLane--;
+        draw();
+    }
+    function moveRight() {
+        if (!gameRunning) return;
+        if (playerLane < lanes-1) playerLane++;
         draw();
     }
     
-    // Управление свайпами (влево-вправо)
-    let touchStartX = null;
-    function handleTouchStart(e) {
+    function handleCanvasTouch(e) {
         if (!gameRunning) return;
         e.preventDefault();
         const rect = canvas.getBoundingClientRect();
-        touchStartX = e.touches[0].clientX - rect.left;
-    }
-    function handleTouchMove(e) {
-        if (!gameRunning || touchStartX === null) return;
-        e.preventDefault();
-        const rect = canvas.getBoundingClientRect();
-        let currentX = e.touches[0].clientX - rect.left;
-        let deltaX = currentX - touchStartX;
-        if (Math.abs(deltaX) > 20) {
-            if (deltaX > 0 && playerLane < laneCount-1) {
-                playerLane++;
-            } else if (deltaX < 0 && playerLane > 0) {
-                playerLane--;
-            }
-            touchStartX = currentX; // сброс для нового жеста
-            draw();
-        }
-    }
-    function handleTouchEnd(e) {
-        touchStartX = null;
+        const touchX = e.touches[0].clientX - rect.left;
+        if (touchX < canvasWidth / 2) moveLeft();
+        else moveRight();
     }
     
-    function initGame() {
-        resizeCanvas();
-        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-        canvas.addEventListener('touchend', handleTouchEnd);
-        resetAndStart(); // сразу запускаем в фоне, но экран еще не показан
+    function initGameUI() {
+        updateDimensions();
+        window.addEventListener('resize', () => {
+            updateDimensions();
+            draw();
+        });
+        canvas.addEventListener('touchstart', handleCanvasTouch, { passive: false });
+        canvas.addEventListener('mousedown', (e) => {
+            if (!gameRunning) return;
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            if (mouseX < canvasWidth / 2) moveLeft();
+            else moveRight();
+        });
+        draw();
     }
+    
+    // Кнопки
+    document.getElementById('leftBtn').addEventListener('click', moveLeft);
+    document.getElementById('rightBtn').addEventListener('click', moveRight);
     
     // Переключение экранов
-    const screenReasonsDiv = document.getElementById('screenReasons');
-    const screenGameDiv = document.getElementById('screenGame');
+    const screenReasons = document.getElementById('screenReasons');
+    const screenGame = document.getElementById('screenGame');
     const startBtn = document.getElementById('startGameBtn');
     const backBtn = document.getElementById('backToReasonsBtn');
     
     startBtn.addEventListener('click', () => {
-        screenReasonsDiv.classList.remove('active-screen');
-        screenGameDiv.classList.add('active-screen');
-        resetAndStart();
+        screenReasons.classList.remove('active-screen');
+        screenGame.classList.add('active-screen');
+        startGame();
     });
     backBtn.addEventListener('click', () => {
         gameRunning = false;
-        if (gameLoop) cancelAnimationFrame(gameLoop);
-        screenGameDiv.classList.remove('active-screen');
-        screenReasonsDiv.classList.add('active-screen');
+        screenGame.classList.remove('active-screen');
+        screenReasons.classList.add('active-screen');
     });
     
-    // запуск игры в фоне для инициализации
-    initGame();
-    // но игра не стартует до нажатия на "ПОБЕЖАЛИ", resetAndStart вызовется при старте
-    // сделаем, чтобы canvas не был активен до начала игры
-    let initialGameRunning = false;
-    gameRunning = false;
-    // переопределим resetAndStart для корректной работы
-    const originalReset = resetAndStart;
-    window.resetAndStart = function() {
-        objects = [];
-        scoreFlowers = 0;
-        distance = 0;
-        playerLane = 1;
-        document.getElementById('flowersCount').innerText = '0';
-        document.getElementById('distance').innerText = '0';
-        document.getElementById('gameOverMsg').innerHTML = '';
-        gameRunning = true;
-        startGameLoop();
-        draw();
-    };
-    resetAndStart = window.resetAndStart;
-    
-    // фикс: кнопка рестарта внутри gameOver работает
-    window.addEventListener('load', () => {
-        resizeCanvas();
-        draw();
-    });
+    initGameUI();
 </script>
 </body>
 </html>
